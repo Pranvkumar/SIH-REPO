@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import Login from './Login';
 import './App.css';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -87,10 +88,61 @@ const Map = ({ reports, onLocationSelect, selectedLocation, weatherData }) => {
   );
 };
 
+// Navigation Header Component
+const NavigationHeader = ({ user, onNavigate, onLogout }) => {
+  return (
+    <div className="bg-white bg-opacity-10 backdrop-blur-lg border-b border-white border-opacity-20 px-6 py-4">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center space-x-4">
+          <button
+            onClick={() => onNavigate('home')}
+            className="text-white font-bold text-lg hover:text-cyan-300 transition-colors"
+          >
+            Ocean Hazard Alert
+          </button>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          {user && (
+            <>
+              <div className="text-white text-sm">
+                Welcome, <span className="font-semibold">{user.name}</span>
+                <span className="ml-2 px-2 py-1 bg-blue-600 bg-opacity-50 rounded text-xs">
+                  {user.type.charAt(0).toUpperCase() + user.type.slice(1)}
+                </span>
+              </div>
+              <button
+                onClick={onLogout}
+                className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+              >
+                Logout
+              </button>
+            </>
+          )}
+          
+          {!user && (
+            <button
+              onClick={() => onNavigate('login')}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Login
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // Home Page Component
-const HomePage = ({ onNavigate }) => {
+const HomePage = ({ onNavigate, user }) => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-cyan-700 text-white">
+      <NavigationHeader user={user} onNavigate={onNavigate} onLogout={() => {
+        localStorage.removeItem('oceanUser');
+        window.location.reload();
+      }} />
+      
       <div className="container mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
@@ -99,6 +151,17 @@ const HomePage = ({ onNavigate }) => {
           <p className="text-xl text-blue-200 max-w-3xl mx-auto">
             Advanced early warning system for ocean hazards with AI-powered severity classification and real-time monitoring
           </p>
+          
+          {user && (
+            <div className="mt-6 p-4 bg-white bg-opacity-10 backdrop-blur-lg rounded-lg max-w-md mx-auto">
+              <p className="text-cyan-300">
+                Logged in as <span className="font-semibold">{user.name}</span>
+              </p>
+              <p className="text-sm text-blue-200 mt-1">
+                Access Level: {user.permissions.join(', ')}
+              </p>
+            </div>
+          )}
         </div>
         
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
@@ -140,12 +203,23 @@ const HomePage = ({ onNavigate }) => {
         </div>
         
         <div className="mt-12 text-center">
-          <button
-            onClick={() => onNavigate('admin')}
-            className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300"
-          >
-            Admin Panel
-          </button>
+          {(!user || (user && user.permissions.includes('admin'))) && (
+            <button
+              onClick={() => onNavigate('admin')}
+              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300 mr-4"
+            >
+              Admin Panel
+            </button>
+          )}
+          
+          {!user && (
+            <button
+              onClick={() => onNavigate('login')}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-300"
+            >
+              Secure Login
+            </button>
+          )}
         </div>
       </div>
     </div>
@@ -153,9 +227,9 @@ const HomePage = ({ onNavigate }) => {
 };
 
 // Report Hazard Form Component
-const ReportPage = ({ onNavigate }) => {
+const ReportPage = ({ onNavigate, user }) => {
   const [formData, setFormData] = useState({
-    name: '',
+    name: user ? user.name : '',
     latitude: '',
     longitude: '',
     address: '',
@@ -253,6 +327,11 @@ const ReportPage = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-red-900 to-orange-800 py-8">
+      <NavigationHeader user={user} onNavigate={onNavigate} onLogout={() => {
+        localStorage.removeItem('oceanUser');
+        window.location.reload();
+      }} />
+      
       <div className="container mx-auto px-6">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
@@ -384,7 +463,7 @@ const ReportPage = ({ onNavigate }) => {
 };
 
 // Dashboard Component
-const Dashboard = ({ onNavigate }) => {
+const Dashboard = ({ onNavigate, user }) => {
   const [reports, setReports] = useState([]);
   const [priorityReports, setPriorityReports] = useState([]);
   const [stats, setStats] = useState(null);
@@ -456,15 +535,14 @@ const Dashboard = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-900 to-cyan-800">
+      <NavigationHeader user={user} onNavigate={onNavigate} onLogout={() => {
+        localStorage.removeItem('oceanUser');
+        window.location.reload();
+      }} />
+      
       <div className="container mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-4xl font-bold text-white">Ocean Hazard Dashboard</h1>
-          <button
-            onClick={() => onNavigate('home')}
-            className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white font-semibold py-2 px-4 rounded-lg"
-          >
-            Home
-          </button>
         </div>
         
         {/* Stats Cards */}
@@ -534,7 +612,7 @@ const Dashboard = ({ onNavigate }) => {
 };
 
 // Admin Panel Component
-const AdminPanel = ({ onNavigate }) => {
+const AdminPanel = ({ onNavigate, user }) => {
   const [reports, setReports] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all');
@@ -584,6 +662,24 @@ const AdminPanel = ({ onNavigate }) => {
     }
   };
 
+  // Check admin permissions
+  if (user && !user.permissions.includes('admin')) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">Access Denied</h1>
+          <p className="text-gray-600 mb-6">You don't have permission to access the admin panel.</p>
+          <button
+            onClick={() => onNavigate('home')}
+            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
+          >
+            Go Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -594,15 +690,14 @@ const AdminPanel = ({ onNavigate }) => {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      <NavigationHeader user={user} onNavigate={onNavigate} onLogout={() => {
+        localStorage.removeItem('oceanUser');
+        window.location.reload();
+      }} />
+      
       <div className="container mx-auto px-6 py-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-800">Admin Panel</h1>
-          <button
-            onClick={() => onNavigate('home')}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg"
-          >
-            Home
-          </button>
         </div>
         
         {/* Filters */}
@@ -697,19 +792,43 @@ const AdminPanel = ({ onNavigate }) => {
 // Main App Component
 function App() {
   const [currentPage, setCurrentPage] = useState('home');
+  const [user, setUser] = useState(null);
+
+  // Check for saved user session on app load
+  useEffect(() => {
+    const savedUser = localStorage.getItem('oceanUser');
+    if (savedUser) {
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  // Handle login
+  const handleLogin = (userData) => {
+    setUser(userData);
+    setCurrentPage('home');
+  };
+
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem('oceanUser');
+    setUser(null);
+    setCurrentPage('home');
+  };
 
   const renderCurrentPage = () => {
     switch (currentPage) {
+      case 'login':
+        return <Login onLogin={handleLogin} onNavigate={setCurrentPage} />;
       case 'home':
-        return <HomePage onNavigate={setCurrentPage} />;
+        return <HomePage onNavigate={setCurrentPage} user={user} />;
       case 'report':
-        return <ReportPage onNavigate={setCurrentPage} />;
+        return <ReportPage onNavigate={setCurrentPage} user={user} />;
       case 'dashboard':
-        return <Dashboard onNavigate={setCurrentPage} />;
+        return <Dashboard onNavigate={setCurrentPage} user={user} />;
       case 'admin':
-        return <AdminPanel onNavigate={setCurrentPage} />;
+        return <AdminPanel onNavigate={setCurrentPage} user={user} />;
       default:
-        return <HomePage onNavigate={setCurrentPage} />;
+        return <HomePage onNavigate={setCurrentPage} user={user} />;
     }
   };
 
